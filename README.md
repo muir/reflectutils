@@ -3,6 +3,7 @@
 [![GoDoc](https://godoc.org/github.com/muir/reflectutils?status.png)](https://pkg.go.dev/github.com/muir/reflectutils)
 ![unit tests](https://github.com/muir/reflectutils/actions/workflows/go.yml/badge.svg)
 [![report card](https://goreportcard.com/badge/github.com/muir/reflectutils)](https://goreportcard.com/report/github.com/muir/reflectutils)
+[![codecov](https://codecov.io/gh/muir/reflectutils/branch/main/graph/badge.svg)](https://codecov.io/gh/muir/reflectutils)
 
 Install:
 
