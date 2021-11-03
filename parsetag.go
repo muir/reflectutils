@@ -12,6 +12,7 @@ type Tag struct {
 	Value string
 }
 
+// SplitTag breaks apart a reflect.StructTag into an array of key/value pairs.
 func SplitTag(tag reflect.StructTag) []Tag {
 	found := make([]Tag, 0, 5)
 	s := string(tag)
