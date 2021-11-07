@@ -9,13 +9,14 @@ import (
 
 type ExampleStruct struct {
 	String string `foo:"something,N=9,square,!jump"`
-	Bar    string `foo:"different,!square,jump"`
+	Bar    string `foo:"different,!square,jump,ignore=xyz"`
 }
 
 type TagExtractorType struct {
 	Name   string `pt:"0"`
 	Square bool   `pt:"square"`
 	Jump   bool   `pt:"jump"`
+	Ignore string `pt:"-"`
 	N      int
 }
 
@@ -32,6 +33,6 @@ func ExampleTag_Fill() {
 		fmt.Printf("%s: %+v\n", f.Name, tet)
 		return true
 	})
-	// Output: String: {Name:something Square:true Jump:false N:9}
-	// Bar: {Name:different Square:false Jump:true N:0}
+	// Output: String: {Name:something Square:true Jump:false Ignore: N:9}
+	// Bar: {Name:different Square:false Jump:true Ignore: N:0}
 }
