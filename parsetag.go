@@ -169,6 +169,7 @@ type fillOpt struct {
 	tag string
 }
 
+// WithTag overrides the tag used by Tag.Fill.  The default is "pt".
 func WithTag(tag string) FillOptArg {
 	return func(o *fillOpt) {
 		o.tag = tag
