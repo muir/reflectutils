@@ -11,6 +11,18 @@ import (
 
 var textUnmarshallerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 
+type stringSetterOpts struct {
+	split string
+}
+
+type StringSetterArg func(*stringSetterOpts)
+
+func WithSplitOn(s string) StringSetterArg {
+	return func(o *stringSetterOpts) {
+		o.split = s
+	}
+}
+
 // MakeStringSetter handles setting a reflect.Value from a string.
 // Based on type, it returns a function to do the work.  It is assumed that the
 // reflect.Type matches the reflect.Value.  If not, panic is likely.
@@ -22,7 +34,13 @@ var textUnmarshallerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem
 //
 // Maps, structs, channels, interfaces, channels, and funcs are not supported unless
 // they happen to implent encoding.TextUnmarshaler.
-func MakeStringSetter(t reflect.Type) (func(target reflect.Value, value string) error, error) {
+func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target reflect.Value, value string) error, error) {
+	opts := stringSetterOpts{
+		split: ",",
+	}
+	for _, f := range optArgs {
+		f(&opts)
+	}
 	if t.AssignableTo(textUnmarshallerType) {
 		return func(target reflect.Value, value string) error {
 			p := reflect.New(t.Elem())
@@ -111,7 +129,7 @@ func MakeStringSetter(t reflect.Type) (func(target reflect.Value, value string) 
 			return nil, err
 		}
 		return func(target reflect.Value, value string) error {
-			for i, v := range strings.SplitN(value, ",", target.Cap()) {
+			for i, v := range strings.SplitN(value, opts.split, target.Cap()) {
 				err := setElem(target.Index(i), v)
 				if err != nil {
 					return err
@@ -125,7 +143,7 @@ func MakeStringSetter(t reflect.Type) (func(target reflect.Value, value string) 
 			return nil, err
 		}
 		return func(target reflect.Value, value string) error {
-			values := strings.Split(value, ",")
+			values := strings.Split(value, opts.split)
 			a := reflect.MakeSlice(target.Type(), len(values), len(values))
 			for i, v := range values {
 				err := setElem(a.Index(i), v)
