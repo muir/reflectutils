@@ -127,29 +127,47 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 	var walkErr error
 	WalkStructElements(v.Type(), func(f reflect.StructField) bool {
 		tag := f.Tag.Get(opt.tag)
-		name := f.Name
 		if tag == "-" {
 			return false
 		}
 		count++
-		i, err := strconv.Atoi(tag)
+		parts := strings.Split(tag, ",")
 		var value string
-		if err == nil {
-			// positional!
-			if i >= len(elements) {
-				return true
+		if len(parts) > 0 && parts[0] != "" {
+			i, err := strconv.Atoi(parts[0])
+			if err == nil {
+				// positional!
+				if i >= len(elements) {
+					return true
+				}
+				value = elements[i]
+			} else {
+				value = kv[parts[0]]
 			}
-			value = elements[i]
 		} else {
-			if tag != "" {
-				name = tag
-			}
-			value = kv[name]
+			value = kv[f.Name]
 		}
 		if value == "" {
 			return true
 		}
-		set, err := MakeStringSetter(f.Type)
+		var sso []StringSetterArg
+		if len(parts) > 1 {
+			for _, part := range parts[1:] {
+				if strings.HasPrefix(part, "split=") {
+					splitOn := part[len("split="):]
+					switch splitOn {
+					case "comma":
+						splitOn = ","
+					case "quote":
+						splitOn = `"`
+					case "space":
+						splitOn = " "
+					}
+					sso = append(sso, WithSplitOn(splitOn))
+				}
+			}
+		}
+		set, err := MakeStringSetter(f.Type, sso...)
 		if err != nil {
 			walkErr = errors.Wrapf(err, "Cannot set %s", f.Type)
 			return true
