@@ -17,6 +17,11 @@ type stringSetterOpts struct {
 
 type StringSetterArg func(*stringSetterOpts)
 
+// WithSplitOn specifies how to split strings into slices
+// or arrays.  An empty string indicates that input strings
+// should not be split.  That's different than the behavior
+// of strings.Split().  If unspecified, strings will be split
+// on comma (,).
 func WithSplitOn(s string) StringSetterArg {
 	return func(o *stringSetterOpts) {
 		o.split = s
@@ -128,6 +133,11 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 		if err != nil {
 			return nil, err
 		}
+		if opts.split == "" {
+			return func(target reflect.Value, value string) error {
+				return setElem(target.Index(0), value)
+			}, nil
+		}
 		return func(target reflect.Value, value string) error {
 			for i, v := range strings.SplitN(value, opts.split, target.Cap()) {
 				err := setElem(target.Index(i), v)
@@ -143,7 +153,12 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 			return nil, err
 		}
 		return func(target reflect.Value, value string) error {
-			values := strings.Split(value, opts.split)
+			var values []string
+			if opts.split != "" {
+				values = strings.Split(value, opts.split)
+			} else {
+				values = []string{value}
+			}
 			a := reflect.MakeSlice(target.Type(), len(values), len(values))
 			for i, v := range values {
 				err := setElem(a.Index(i), v)

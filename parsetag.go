@@ -29,7 +29,8 @@ type Tags []Tag
 // TagSet is a simple transformation of an array of Tag into an
 // indexted structure so that lookup is efficient.
 type TagSet struct {
-	tags  []Tag
+	// Tags is a read-only value
+	Tags  Tags
 	index map[string]int
 }
 
@@ -70,7 +71,7 @@ func (s TagSet) Get(tag string) Tag {
 
 func (s TagSet) Lookup(tag string) (Tag, bool) {
 	if i, ok := s.index[tag]; ok {
-		return s.tags[i], true
+		return s.Tags[i], true
 	}
 	return mkTag("", ""), false
 }
@@ -81,7 +82,7 @@ func (t Tags) Set() TagSet {
 		index[tag.Tag] = i
 	}
 	return TagSet{
-		tags:  t,
+		Tags:  t,
 		index: index,
 	}
 }
@@ -99,6 +100,10 @@ func (t Tags) Set() TagSet {
 // comma-separated list of tag elements: "flag", "!flag" (sets to false), "flag=true",
 // "flag=false", "flag=0", "flag=1", "flag=t", "flag=f", "flag=T", "flag=F".
 // It will set Int by looking for "intValue=280" (set to 280).
+//
+// When filling an array value, the default character to split upon is
+// comma, but other values can be set with "split=X" to split on X.
+// Special values of X are "quote", "space", and "none"
 func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 	opt := fillOpt{
 		tag: "pt",
@@ -156,8 +161,6 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 				if strings.HasPrefix(part, "split=") {
 					splitOn := part[len("split="):]
 					switch splitOn {
-					case "comma":
-						splitOn = ","
 					case "quote":
 						splitOn = `"`
 					case "space":
