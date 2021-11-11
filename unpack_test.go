@@ -54,6 +54,9 @@ func TestStringSetter(t *testing.T) {
 		Foo        Foo         `value:"foo"      want:"~foo~"`
 		FooArray   [2]Foo      `value:"a,b,c"    want:"[~a~ ~b,c~]"`
 		FooP       *Foo        `value:"foo"      want:"~foo~"`
+		SA1        []string    `value:"foo/bar"  want:"[foo/bar]"`
+		SA2        []string    `value:"foo/bar"  want:"[foo bar]"   split:"/"`
+		SA3        []string    `value:"foo,bar"  want:"[foo,bar]"   split:""`
 	}
 	var ts tsType
 	vp := reflect.ValueOf(&ts)
@@ -69,7 +72,12 @@ func TestStringSetter(t *testing.T) {
 		if !ok {
 			want = value
 		}
-		fn, err := reflectutils.MakeStringSetter(f.Type)
+		var opts []reflectutils.StringSetterArg
+		if split, ok := f.Tag.Lookup("split"); ok {
+			t.Log("  splitting on", split)
+			opts = append(opts, reflectutils.WithSplitOn(split))
+		}
+		fn, err := reflectutils.MakeStringSetter(f.Type, opts...)
 		if !assert.NoErrorf(t, err, "make string setter for %s", f.Name) {
 			return true
 		}
