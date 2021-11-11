@@ -54,9 +54,12 @@ func TestStringSetter(t *testing.T) {
 		Foo        Foo         `value:"foo"      want:"~foo~"`
 		FooArray   [2]Foo      `value:"a,b,c"    want:"[~a~ ~b,c~]"`
 		FooP       *Foo        `value:"foo"      want:"~foo~"`
-		SA1        []string    `value:"foo/bar"  want:"[foo/bar]"`
-		SA2        []string    `value:"foo/bar"  want:"[foo bar]"   split:"/"`
-		SA3        []string    `value:"foo,bar"  want:"[foo,bar]"   split:""`
+		SS1        []string    `value:"foo/bar"  want:"[foo/bar]"`
+		SS2        []string    `value:"foo/bar"  want:"[foo bar]"   split:"/"`
+		SS3        []string    `value:"foo,bar"  want:"[foo,bar]"   split:""`
+		SA1        [2]string   `value:"foo/bar"  want:"[foo/bar ]"`
+		SA2        [2]string   `value:"foo/bar"  want:"[foo bar]"   split:"/"`
+		SA3        [2]string   `value:"foo,bar"  want:"[foo,bar ]"  split:""`
 	}
 	var ts tsType
 	vp := reflect.ValueOf(&ts)
