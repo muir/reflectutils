@@ -3,11 +3,13 @@ package reflectutils_test
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/muir/reflectutils"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type Foo string
@@ -57,9 +59,12 @@ func TestStringSetter(t *testing.T) {
 		SS1        []string    `value:"foo/bar"  want:"[foo/bar]"`
 		SS2        []string    `value:"foo/bar"  want:"[foo bar]"   split:"/"`
 		SS3        []string    `value:"foo,bar"  want:"[foo,bar]"   split:""`
+		SS4        []string    `value:"foo,bar"  want:"[foo bar]"   split:","`
 		SA1        [2]string   `value:"foo/bar"  want:"[foo/bar ]"`
 		SA2        [2]string   `value:"foo/bar"  want:"[foo bar]"   split:"/"`
 		SA3        [2]string   `value:"foo,bar"  want:"[foo,bar ]"  split:""`
+		SS5        []string    `value:"foo"      want:"[foo bar]"   value2:"bar"`
+		SS6        []string    `value:"foo"      want:"[bar]"       value2:"bar" sa:"f"`
 	}
 	var ts tsType
 	vp := reflect.ValueOf(&ts)
@@ -80,6 +85,13 @@ func TestStringSetter(t *testing.T) {
 			t.Log("  splitting on", split)
 			opts = append(opts, reflectutils.WithSplitOn(split))
 		}
+		if sa, ok := f.Tag.Lookup("sa"); ok {
+			b, err := strconv.ParseBool(sa)
+			require.NoError(t, err, "parse sa")
+			t.Log("  slice append", b)
+			opts = append(opts, reflectutils.SliceAppend(b))
+		}
+
 		fn, err := reflectutils.MakeStringSetter(f.Type, opts...)
 		if !assert.NoErrorf(t, err, "make string setter for %s", f.Name) {
 			return true
@@ -87,11 +99,16 @@ func TestStringSetter(t *testing.T) {
 		e := v.FieldByIndex(f.Index)
 		err = fn(e, value)
 		if assert.NoError(t, err, "set %s to '%s'", f.Name, value) {
+			value2, ok := f.Tag.Lookup("value2")
+			if ok {
+				err := fn(e, value2)
+				assert.NoError(t, err, "set value2")
+			}
 			ge := e
 			if f.Type.Kind() == reflect.Ptr {
 				ge = e.Elem()
 			}
-			assert.Equalf(t, want, fmt.Sprint(ge.Interface()), "got setting %s to '%s'", f.Name, value)
+			assert.Equalf(t, want, fmt.Sprintf("%+v", ge.Interface()), "got setting %s to '%s'", f.Name, value)
 		}
 		count++
 		return true

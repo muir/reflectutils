@@ -12,7 +12,8 @@ import (
 var textUnmarshallerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 
 type stringSetterOpts struct {
-	split string
+	split       string
+	sliceAppend bool
 }
 
 type StringSetterArg func(*stringSetterOpts)
@@ -25,6 +26,16 @@ type StringSetterArg func(*stringSetterOpts)
 func WithSplitOn(s string) StringSetterArg {
 	return func(o *stringSetterOpts) {
 		o.split = s
+	}
+}
+
+// Controls the behavior for setting existing existing slices.
+// If this is true (the default) then additional setting to a
+// slice appends to the existing slice.  If false, slices are
+// replaced.
+func SliceAppend(b bool) StringSetterArg {
+	return func(o *stringSetterOpts) {
+		o.sliceAppend = b
 	}
 }
 
@@ -41,7 +52,8 @@ func WithSplitOn(s string) StringSetterArg {
 // they happen to implent encoding.TextUnmarshaler.
 func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target reflect.Value, value string) error, error) {
 	opts := stringSetterOpts{
-		split: ",",
+		split:       ",",
+		sliceAppend: true,
 	}
 	for _, f := range optArgs {
 		f(&opts)
@@ -166,7 +178,11 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 					return err
 				}
 			}
-			target.Set(a)
+			if target.IsNil() || !opts.sliceAppend {
+				target.Set(a)
+			} else {
+				target.Set(reflect.AppendSlice(target, a))
+			}
 			return nil
 		}, nil
 	case reflect.Map:
