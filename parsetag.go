@@ -88,6 +88,9 @@ func (t Tags) Set() TagSet {
 }
 
 // Fill unpacks struct tags into a struct based on tags of the desitnation struct.
+// This is very meta.  It is using struct tags to control parsing of struct tags.
+// The tag being parsed is the receiver (tag).  The model that controls the parsing
+// is the function parameter (model).  The parsing may be adjusted based on the opts.
 //
 // 	type MyTags struct {
 //		Name	string	`pt:"0"`
@@ -104,6 +107,13 @@ func (t Tags) Set() TagSet {
 // When filling an array value, the default character to split upon is
 // comma, but other values can be set with "split=X" to split on X.
 // Special values of X are "quote", "space", and "none"
+//
+// For bool values (and *bool, etc) an antonym can be specified:
+//
+//	MyBool	bool	`pt:"mybool,!other"`
+//
+// So, then "mybool" maps to true, "!mybool" maps to false,
+// "other" maps to false and "!other" maps to true.
 func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 	opt := fillOpt{
 		tag: "pt",
@@ -115,6 +125,11 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 	if !v.IsValid() || v.IsNil() || v.Type().Kind() != reflect.Ptr || v.Type().Elem().Kind() != reflect.Struct {
 		return errors.Errorf("Fill target must be a pointer to a struct, not %T", model)
 	}
+	// Break apart the tag into a list of elements (split on ",") and
+	// key/values (kv) when the elements have values (split on "=").  If
+	// an element doesn't have a value from =, then it gets a value of
+	// "t" (true) unless the element name starts with "!" in which case,
+	// the "!" is discarded and the value is "f" (false)
 	kv := make(map[string]string)
 	elements := strings.Split(tag.Value, ",")
 	for _, element := range elements {
@@ -128,6 +143,7 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 			}
 		}
 	}
+	// Now walk over the input model that controls the parsing.
 	var count int
 	var walkErr error
 	WalkStructElements(v.Type(), func(f reflect.StructField) bool {
@@ -138,6 +154,7 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 		count++
 		parts := strings.Split(tag, ",")
 		var value string
+		isBool := NonPointer(f.Type).Kind() == reflect.Bool
 		if len(parts) > 0 && parts[0] != "" {
 			i, err := strconv.Atoi(parts[0])
 			if err == nil {
@@ -147,7 +164,26 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 				}
 				value = elements[i]
 			} else {
-				value = kv[parts[0]]
+				if isBool {
+					for _, p := range parts {
+						if len(p) > 0 && p[0] == '!' {
+							if v, ok := kv[p[1:]]; ok {
+								value = v
+								switch value {
+								case "f":
+									value = "t"
+								case "t":
+									value = "f"
+								}
+							}
+						} else if v, ok := kv[p]; ok {
+							value = v
+							break
+						}
+					}
+				} else {
+					value = kv[parts[0]]
+				}
 			}
 		} else {
 			value = kv[f.Name]
@@ -195,4 +231,11 @@ func WithTag(tag string) FillOptArg {
 	return func(o *fillOpt) {
 		o.tag = tag
 	}
+}
+
+func NonPointer(t reflect.Type) reflect.Type {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t
 }
