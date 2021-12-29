@@ -2,6 +2,7 @@ package reflectutils
 
 import (
 	"encoding"
+	"flag"
 	"reflect"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 )
 
 var textUnmarshallerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+var flagValueType = reflect.TypeOf((*flag.Value)(nil)).Elem()
 
 type stringSetterOpts struct {
 	split       string
@@ -46,7 +48,11 @@ func SliceAppend(b bool) StringSetterArg {
 // For arrays and slices, strings are split on comma to create the values for the
 // elements.
 //
+// Any type that matches a type registered with RegisterStringSetter will be
+// unpacked with the corresponding function.  A string setter is pre-registered
+// for time.Duration
 // Anything that implements encoding.TextUnmarshaler will be unpacked that way.
+// Anything that implements flag.Value will be unpacked that way.
 //
 // Maps, structs, channels, interfaces, channels, and funcs are not supported unless
 // they happen to implent encoding.TextUnmarshaler.
@@ -57,6 +63,16 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 	}
 	for _, f := range optArgs {
 		f(&opts)
+	}
+	if setter, ok := settersByType[t]; ok {
+		return func(target reflect.Value, value string) error {
+			out := setter.Call([]reflect.Value{reflect.ValueOf(value)})
+			if !out[1].IsNil() {
+				return out[1].Interface().(error)
+			}
+			target.Set(out[0])
+			return nil
+		}, nil
 	}
 	if t.AssignableTo(textUnmarshallerType) {
 		return func(target reflect.Value, value string) error {
@@ -72,6 +88,23 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 	if reflect.PtrTo(t).AssignableTo(textUnmarshallerType) {
 		return func(target reflect.Value, value string) error {
 			err := target.Addr().Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(value))
+			return errors.WithStack(err)
+		}, nil
+	}
+	if t.AssignableTo(flagValueType) {
+		return func(target reflect.Value, value string) error {
+			p := reflect.New(t.Elem())
+			target.Set(p)
+			err := target.Interface().(flag.Value).Set(value)
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			return nil
+		}, nil
+	}
+	if reflect.PtrTo(t).AssignableTo(flagValueType) {
+		return func(target reflect.Value, value string) error {
+			err := target.Addr().Interface().(flag.Value).Set(value)
 			return errors.WithStack(err)
 		}, nil
 	}
