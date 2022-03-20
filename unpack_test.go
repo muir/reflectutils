@@ -135,7 +135,6 @@ func TestStringSetter(t *testing.T) {
 				assert.Equalf(t, want, fmt.Sprintf("%+v", ge.Interface()), "got setting %s to '%s'", f.Name, value)
 			}
 			count++
-			return
 		})
 		return true
 	})

@@ -84,9 +84,11 @@ linters:
   enable:
     - megacheck
     - govet
+    - exportloopref
   enable-all: false
   disable:
     - maligned
+    - scopelint
     - prealloc
     - cyclop
     - funlen
