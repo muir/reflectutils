@@ -31,6 +31,17 @@ func ts(t *testing.T, tag reflect.StructTag, want ...string) {
 	assert.Equal(t, want, s, tag)
 }
 
+func TestTagGet(t *testing.T) {
+	tg(t, `env:"YO"  flag:"foo,bar"`, "env", "YO")
+}
+
+func tg(t *testing.T, tags reflect.StructTag, name string, value string) {
+	t.Log(tags)
+	tag := reflectutils.GetTag(tags, name)
+	assert.Equal(t, name, tag.Tag, "name")
+	assert.Equal(t, value, tag.Value, "value")
+}
+
 func TestFill(t *testing.T) {
 	cases := []struct {
 		tests     interface{}

@@ -38,9 +38,9 @@ type TagSet struct {
 // Tags are expected to be in the conventional format.  What does "contentional"
 // mean?  `name:"values,value=value" name2:"value"`.  See https://flaviocopes.com/go-tags/
 // a light introduction.
-func SplitTag(tag reflect.StructTag) Tags {
+func SplitTag(tags reflect.StructTag) Tags {
 	found := make([]Tag, 0, 5)
-	s := string(tag)
+	s := string(tags)
 	for len(s) > 0 {
 		f := aTagRE.FindStringSubmatchIndex(s)
 		if len(f) != 6 {
@@ -64,6 +64,17 @@ func mkTag(tag, value string) Tag {
 	}
 }
 
+func (t Tags) Set() TagSet {
+	index := make(map[string]int)
+	for i, tag := range t {
+		index[tag.Tag] = i
+	}
+	return TagSet{
+		Tags:  t,
+		index: index,
+	}
+}
+
 func (s TagSet) Get(tag string) Tag {
 	t, _ := s.Lookup(tag)
 	return t
@@ -76,15 +87,17 @@ func (s TagSet) Lookup(tag string) (Tag, bool) {
 	return mkTag("", ""), false
 }
 
-func (t Tags) Set() TagSet {
-	index := make(map[string]int)
-	for i, tag := range t {
-		index[tag.Tag] = i
-	}
-	return TagSet{
-		Tags:  t,
-		index: index,
-	}
+func GetTag(tags reflect.StructTag, tag string) Tag {
+	t, _ := LookupTag(tags, tag)
+	return t
+}
+
+func LookupTag(tags reflect.StructTag, tag string) (Tag, bool) {
+	value, ok := tags.Lookup(tag)
+	return Tag{
+		Tag:   tag,
+		Value: value,
+	}, ok
 }
 
 // Fill unpacks struct tags into a struct based on tags of the desitnation struct.
