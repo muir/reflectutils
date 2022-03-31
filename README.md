@@ -13,3 +13,58 @@ Install:
 
 Reflectutils is simply a repository for functions useful for working with Golang's reflect package.
 
+Here's the highlights:
+
+## Walking structures
+
+```go
+func WalkStructElements(t reflect.Type, f func(reflect.StructField) bool)
+```
+
+Recursively walking a struct with reflect has a pitfalls: 
+
+1. It isn't recurse with respect to embeded structs
+1. The `Index` field of `reflect.Structfield` of embedded structs is not relative to your starting point.
+
+[WalkStructElements()](https://pkg.go.dev/github.com/muir/reflectutils#WalkStructElements) walks 
+embedded elements and it updates `StructField.Index` so that it is
+relative to the root struct that was passed in.
+
+## Setting elements
+
+```go
+func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target reflect.Value, value string) error, error)
+```
+
+[MakeStringSetter()](https://pkg.go.dev/github.com/muir/reflectutils#MakeStringSetter) 
+returns a function that can be used to assing to `reflect.Value` given a
+string value.  It can handle arrays and slices (splits strings on commas).
+
+## Parsing struct tags
+
+Use [SplitTag()](https://pkg.go.dev/github.com/muir/reflectutils#SplitTag) to break a struct
+tag into it's elements and then use [Tag.Fill()](https://pkg.go.dev/github.com/muir/reflectutils#Tag.Fill)
+to parse it into a struct.
+
+For example:
+
+```go
+type TagInfo struct {
+	Name	string	`pt:"0"`     // positional, first argument
+	Train	bool	`pt:"train"` // boolean: true: "train", "train=true"; false: "!train", "train=false"
+	Count	int	`pt:"count"` // integer value will be parsed
+}
+
+st := reflect.StructTag(`foo:"bar,!train,count=9"`)
+var tagInfo TagInfo
+err := GetTag(st, "foo").Fill(&tagInfo)
+
+// tagInfo.Name will be "bar"
+// tagInfo.Train will be false
+// tagInfo.Count will be 9
+```
+
+## Development status
+
+Reflectutils is used by several packages.  Backwards compatability is expected.
+
