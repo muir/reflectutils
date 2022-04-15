@@ -110,7 +110,7 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 	}
 	switch t.Kind() {
 	case reflect.Ptr:
-		setElem, err := MakeStringSetter(t.Elem())
+		setElem, err := MakeStringSetter(t.Elem(), optArgs...)
 		if err != nil {
 			return nil, err
 		}

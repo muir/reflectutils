@@ -88,6 +88,7 @@ func TestStringSetter(t *testing.T) {
 		SA3        [2]string       `value:"foo,bar"  want:"[foo,bar ]"  split:""`
 		SS5        []string        `value:"foo"      want:"[foo bar]"   value2:"bar"`
 		SS6        []string        `value:"foo"      want:"[bar]"       value2:"bar" sa:"f"`
+		RG01       *[]int          `value:"823:29"   want:"[823 29]"    split:":"`
 	}
 	var ts tsType
 	vp := reflect.ValueOf(&ts)
