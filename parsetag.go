@@ -245,10 +245,3 @@ func WithTag(tag string) FillOptArg {
 		o.tag = tag
 	}
 }
-
-func NonPointer(t reflect.Type) reflect.Type {
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	return t
-}
