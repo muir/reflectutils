@@ -18,6 +18,7 @@ func NonPointer(t reflect.Type) reflect.Type {
 // type.
 func NonElement(t reflect.Type) reflect.Type {
 	for {
+		//nolint:exhaustive // deliberately
 		switch t.Kind() {
 		case reflect.Ptr, reflect.Map, reflect.Array, reflect.Slice:
 			t = t.Elem()
