@@ -64,6 +64,13 @@ err := GetTag(st, "foo").Fill(&tagInfo)
 // tagInfo.Count will be 9
 ```
 
+## Type names
+
+The `TypeName()` function exists to disambiguate between type names that are
+versioned.  `reflect.Type.String()` will hides package versions.  This doesn't
+matter unless you've, unfortunately, imported multiple versions of the same
+package.  
+
 ## Development status
 
 Reflectutils is used by several packages.  Backwards compatability is expected.
