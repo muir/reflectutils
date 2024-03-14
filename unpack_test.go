@@ -30,6 +30,7 @@ func (bp *Bar) Set(s string) error {
 	*bp = Bar(s + "/e")
 	return nil
 }
+
 func (bp Bar) String() string {
 	return "b/" + string(bp)
 }
@@ -37,6 +38,10 @@ func (bp Bar) String() string {
 var _ flag.Value = func() *Bar { var x Bar; return &x }()
 
 func TestStringSetter(t *testing.T) {
+	type J struct {
+		A int
+		B string
+	}
 	type tsType struct {
 		Int        int             `value:"38"`
 		Int8       int8            `value:"-9"`
@@ -75,7 +80,7 @@ func TestStringSetter(t *testing.T) {
 		FooP       *Foo            `value:"foo"      want:"~foo~"`
 		Dur        time.Duration   `value:"30m"      want:"30m0s"`
 		DurP       *time.Duration  `value:"15m"      want:"15m0s"`
-		DurArray   []time.Duration `value:"15m,45m"      want:"[15m0s 45m0s]"`
+		DurArray   []time.Duration `value:"15m,45m"  want:"[15m0s 45m0s]"`
 		Bar        Bar             `value:"bar"      want:"b/bar/e"`
 		BarArray   [2]Bar          `value:"a,b,c"    want:"[b/a/e b/b,c/e]"`
 		BarP       *Bar            `value:"bar"      want:"b/bar/e"`
@@ -89,6 +94,7 @@ func TestStringSetter(t *testing.T) {
 		SS5        []string        `value:"foo"      want:"[foo bar]"   value2:"bar"`
 		SS6        []string        `value:"foo"      want:"[bar]"       value2:"bar" sa:"f"`
 		RG01       *[]int          `value:"823:29"   want:"[823 29]"    split:":"`
+		S          *J              `value:"{\"A\":10,\"B\":\"bar\"}"  want:"{A:10 B:bar}" fj:"t"`
 	}
 	var ts tsType
 	vp := reflect.ValueOf(&ts)
@@ -115,6 +121,12 @@ func TestStringSetter(t *testing.T) {
 				require.NoError(t, err, "parse sa")
 				t.Log("  slice append", b)
 				opts = append(opts, reflectutils.SliceAppend(b))
+			}
+			if fj, ok := f.Tag.Lookup("fj"); ok {
+				b, err := strconv.ParseBool(fj)
+				require.NoError(t, err, "parse fj")
+				t.Log("  force JSON", b)
+				opts = append(opts, reflectutils.ForceJSON(b))
 			}
 
 			fn, err := reflectutils.MakeStringSetter(f.Type, opts...)
