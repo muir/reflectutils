@@ -2,6 +2,7 @@ package reflectutils
 
 import (
 	"encoding"
+	"encoding/json"
 	"flag"
 	"reflect"
 	"strconv"
@@ -10,12 +11,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-var textUnmarshallerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
-var flagValueType = reflect.TypeOf((*flag.Value)(nil)).Elem()
+var (
+	textUnmarshallerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+	flagValueType        = reflect.TypeOf((*flag.Value)(nil)).Elem()
+)
 
 type stringSetterOpts struct {
 	split       string
 	sliceAppend bool
+	forceJSON   bool
 }
 
 type StringSetterArg func(*stringSetterOpts)
@@ -41,6 +45,15 @@ func SliceAppend(b bool) StringSetterArg {
 	}
 }
 
+// ForceJSON controls if types will be decoded with JSON
+// unmarshal. This overrides normal decoding patterns. The default
+// is false.
+func ForceJSON(b bool) StringSetterArg {
+	return func(o *stringSetterOpts) {
+		o.forceJSON = b
+	}
+}
+
 // MakeStringSetter handles setting a reflect.Value from a string.
 // Based on type, it returns a function to do the work.  It is assumed that the
 // reflect.Type matches the reflect.Value.  If not, panic is likely.
@@ -63,6 +76,17 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 	}
 	for _, f := range optArgs {
 		f(&opts)
+	}
+	if opts.forceJSON {
+		return func(target reflect.Value, value string) error {
+			p := reflect.New(t.Elem())
+			target.Set(p)
+			err := json.Unmarshal([]byte(value), target.Interface())
+			if err != nil {
+				return errors.WithStack(err)
+			}
+			return nil
+		}, nil
 	}
 	if setter, ok := settersByType[t]; ok {
 		return func(target reflect.Value, value string) error {
