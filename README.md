@@ -71,6 +71,11 @@ versioned.  `reflect.Type.String()` will hides package versions.  This doesn't
 matter unless you've, unfortunately, imported multiple versions of the same
 package.  
 
+## Default filler
+
+The `FillInDefaultValues()` function will look at for a struct tag named "default"
+and use that value to fill in values where no value has been set.
+
 ## Development status
 
 Reflectutils is used by several packages.  Backwards compatability is expected.
