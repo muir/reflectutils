@@ -18,7 +18,6 @@ var aTagRE = regexp.MustCompile(`(\S+):"((?:[^"\\]|\\.)*)"(?:\s+|$)`)
 //	type Foo struct {
 //		S string `json:"s,omitempty" xml:"s_thing"`
 //	}
-//
 type Tag struct {
 	Tag   string
 	Value string
@@ -105,8 +104,8 @@ func LookupTag(tags reflect.StructTag, tag string) (Tag, bool) {
 // The tag being parsed is the receiver (tag).  The model that controls the parsing
 // is the function parameter (model).  The parsing may be adjusted based on the opts.
 //
-// 	type MyTags struct {
-//		Name	string	`pt:"0"`
+//	type MyTags struct {
+//		Name	string	`pt:"0"` // selected by position will exclude from rest match
 //		Flag	bool	`pt:"flag"`
 //		Int	int	`pt:"intValue"`
 //	}
@@ -176,6 +175,7 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 					return true
 				}
 				value = elements[i]
+				delete(kv, value) // exclude from rest match
 			} else {
 				if isBool {
 					for _, p := range parts {

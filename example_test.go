@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/muir/reflectutils"
+	"github.com/pkg/errors"
 )
 
 type S struct {
@@ -37,6 +38,28 @@ func makeIntDoubler(t reflect.Type) func(v reflect.Value) {
 	}
 }
 
+func makeIntDoublerWithError(t reflect.Type) (func(v reflect.Value), error) {
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
+		panic("makeIntDoublerWithError only supports pointers to structs")
+	}
+	var ints []reflect.StructField
+	err := reflectutils.WalkStructElementsWithError(t, func(f reflect.StructField) (bool, error) {
+		if f.Type.Kind() == reflect.Int {
+			ints = append(ints, f)
+		} else {
+			return false, errors.Errorf("not allow element is non-Int")
+		}
+		return true, nil
+	})
+	return func(v reflect.Value) {
+		v = v.Elem()
+		for _, f := range ints {
+			i := v.FieldByIndex(f.Index)
+			i.SetInt(int64(i.Interface().(int)) * 2)
+		}
+	}, err
+}
+
 func Example() {
 	s := S{
 		I1: 3,
@@ -51,4 +74,22 @@ func Example() {
 	fmt.Printf("%v\n", v.Interface())
 
 	// Output: &{6 string {10}}
+}
+
+func ExampleError() {
+	s := S{
+		I1: 3,
+		S:  "string",
+		M: T{
+			I2: 5,
+		},
+	}
+	v := reflect.ValueOf(&s)
+	doubler, err := makeIntDoublerWithError(v.Type())
+	doubler(v)
+	fmt.Printf("%v\n", v.Interface())
+	fmt.Printf("%v", err)
+
+	// Output: &{6 string {5}}
+	// not allow element is non-Int
 }

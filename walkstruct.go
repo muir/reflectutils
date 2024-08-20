@@ -11,7 +11,7 @@ import (
 // matching the original struct to fetch that field.
 //
 // WalkStructElements should be called with a reflect.Type whose Kind() is
-// reflect.Struct or whose Kind() is reflec.Ptr and Elme.Type() is reflect.Struct.
+// reflect.Struct or whose Kind() is reflect.Ptr and Elem.Type() is reflect.Struct.
 // All other types will simply be ignored.
 //
 // The return value from f only matters when the type of the field is a struct.  In
@@ -35,6 +35,31 @@ func doWalkStructElements(t reflect.Type, path []int, f func(reflect.StructField
 			doWalkStructElements(field.Type, np, f)
 		}
 	}
+}
+
+func WalkStructElementsWithError(t reflect.Type, f func(reflect.StructField) (bool, error)) error {
+	if t.Kind() == reflect.Struct {
+		return doWalkStructElementsWithError(t, []int{}, f)
+	}
+	if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
+		return doWalkStructElementsWithError(t.Elem(), []int{}, f)
+	}
+	return nil
+}
+
+func doWalkStructElementsWithError(t reflect.Type, path []int, f func(reflect.StructField) (bool, error)) error {
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		np := copyIntSlice(path)
+		np = append(np, field.Index...)
+		field.Index = np
+		if walkDown, err := f(field); err != nil {
+			return err
+		} else if walkDown && field.Type.Kind() == reflect.Struct {
+			return doWalkStructElementsWithError(field.Type, np, f)
+		}
+	}
+	return nil
 }
 
 func copyIntSlice(in []int) []int {
