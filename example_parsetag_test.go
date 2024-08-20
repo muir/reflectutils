@@ -13,11 +13,12 @@ type ExampleStruct struct {
 }
 
 type TagExtractorType struct {
-	Name   string `pt:"0"`
-	Square bool   `pt:"square"`
-	Jump   bool   `pt:"jump"`
-	Ignore string `pt:"-"`
-	N      int
+	Name      string `pt:"0"` // selected by position will exclude from rest
+	NameAgain bool   `pt:"something,different"`
+	Square    bool   `pt:"square"`
+	Jump      bool   `pt:"jump"`
+	Ignore    string `pt:"-"`
+	N         int
 }
 
 // Fill is a helper for when you're working with tags.
@@ -33,6 +34,6 @@ func ExampleTag_Fill() {
 		fmt.Printf("%s: %+v\n", f.Name, tet)
 		return true
 	})
-	// Output: String: {Name:something Square:true Jump:false Ignore: N:9}
-	// Bar: {Name:different Square:false Jump:true Ignore: N:0}
+	// Output: String: {Name:something NameAgain:false Square:true Jump:false Ignore: N:9}
+	// Bar: {Name:different NameAgain:false Square:false Jump:true Ignore: N:0}
 }
