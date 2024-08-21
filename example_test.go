@@ -56,7 +56,7 @@ func makeIntDoublerWithError(t reflect.Type) (func(v reflect.Value), error) {
 		if f.Type.Kind() == reflect.String {
 			return errors.Errorf("error on string, and stop walk")
 		}
-		return nil // default nil recursive down
+		return nil // return nil will recurse on a field that is struct
 	})
 	return func(v reflect.Value) {
 		v = v.Elem()
@@ -109,7 +109,8 @@ func Example() {
 	fmt.Printf("%v\n", v.Interface())
 	fmt.Printf("%v", err)
 
-	// Output: &{6 {4 12} string {10}}
+	// Output:
+	// &{6 {4 12} string {10}}
 	// &{12 {4 12} string {10}}
 	// <nil>
 }
@@ -132,6 +133,7 @@ func ExampleError() {
 	fmt.Printf("%v\n", v.Interface())
 	fmt.Printf("%v", err)
 
-	// Output: &{6 {4 12} string {5}}
+	// Output:
+	// &{6 {4 12} string {5}}
 	// error on string, and stop walk
 }
