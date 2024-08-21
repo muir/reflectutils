@@ -105,7 +105,7 @@ func LookupTag(tags reflect.StructTag, tag string) (Tag, bool) {
 // is the function parameter (model).  The parsing may be adjusted based on the opts.
 //
 //	type MyTags struct {
-//		Name	string	`pt:"0"` // selected by position will exclude from rest match
+//		Name	string	`pt:"0"` // selecting by position excludes other kinds of matching
 //		Flag	bool	`pt:"flag"`
 //		Int	int	`pt:"intValue"`
 //	}

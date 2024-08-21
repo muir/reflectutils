@@ -13,7 +13,7 @@ type ExampleStruct struct {
 }
 
 type TagExtractorType struct {
-	Name      string `pt:"0"` // selected by position will exclude from rest
+	Name      string `pt:"0"` // selecting by position excludes other kinds of matching
 	NameAgain bool   `pt:"something,different"`
 	Square    bool   `pt:"square"`
 	Jump      bool   `pt:"jump"`
