@@ -10,12 +10,18 @@ import (
 
 type S struct {
 	I1 int
+	D  T2
 	S  string
 	M  T
 }
 
 type T struct {
 	I2 int
+}
+
+type T2 struct {
+	I3 int
+	I4 int
 }
 
 func makeIntDoubler(t reflect.Type) func(v reflect.Value) {
@@ -46,8 +52,9 @@ func makeIntDoublerWithError(t reflect.Type) (func(v reflect.Value), error) {
 	err := reflectutils.WalkStructElementsWithError(t, func(f reflect.StructField) (bool, error) {
 		if f.Type.Kind() == reflect.Int {
 			ints = append(ints, f)
-		} else {
-			return false, errors.Errorf("not allow element is non-Int")
+		}
+		if f.Type.Kind() == reflect.String {
+			return false, errors.Errorf("error on string")
 		}
 		return true, nil
 	})
@@ -63,7 +70,11 @@ func makeIntDoublerWithError(t reflect.Type) (func(v reflect.Value), error) {
 func Example() {
 	s := S{
 		I1: 3,
-		S:  "string",
+		D: T2{
+			I3: 2,
+			I4: 6,
+		},
+		S: "string",
 		M: T{
 			I2: 5,
 		},
@@ -73,13 +84,17 @@ func Example() {
 	doubler(v)
 	fmt.Printf("%v\n", v.Interface())
 
-	// Output: &{6 string {10}}
+	// Output: &{6 {4 12} string {10}}
 }
 
 func ExampleError() {
 	s := S{
 		I1: 3,
-		S:  "string",
+		D: T2{
+			I3: 2,
+			I4: 6,
+		},
+		S: "string",
 		M: T{
 			I2: 5,
 		},
@@ -90,6 +105,6 @@ func ExampleError() {
 	fmt.Printf("%v\n", v.Interface())
 	fmt.Printf("%v", err)
 
-	// Output: &{6 string {5}}
-	// not allow element is non-Int
+	// Output: &{6 {4 12} string {5}}
+	// error on string
 }

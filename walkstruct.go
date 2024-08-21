@@ -56,7 +56,8 @@ func doWalkStructElementsWithError(t reflect.Type, path []int, f func(reflect.St
 		if walkDown, err := f(field); err != nil {
 			return err
 		} else if walkDown && field.Type.Kind() == reflect.Struct {
-			if err := doWalkStructElementsWithError(field.Type, np, f); err != nil {
+			err := doWalkStructElementsWithError(field.Type, np, f)
+			if err != nil {
 				return err
 			}
 		}
