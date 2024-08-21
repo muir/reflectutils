@@ -1,6 +1,7 @@
 package reflectutils
 
 import (
+	"errors"
 	"reflect"
 )
 
@@ -37,7 +38,23 @@ func doWalkStructElements(t reflect.Type, path []int, f func(reflect.StructField
 	}
 }
 
-func WalkStructElementsWithError(t reflect.Type, f func(reflect.StructField) (bool, error)) error {
+// WalkStructElementsWithError recursively visits the fields in a structure calling a
+// callback for each field.  It modifies the reflect.StructField object
+// so that Index is relative to the root object originally passed to
+// WalkStructElementsWithError.  This allows the FieldByIndex method on a reflect.Value
+// matching the original struct to fetch that field.
+//
+// WalkStructElementsWithError should be called with a reflect.Type whose Kind() is
+// reflect.Struct or whose Kind() is reflect.Ptr and Elem.Type() is reflect.Struct.
+// All other types will simply be ignored.
+//
+// A non-nil return value from the called function stops iteration and recursion and becomes
+// the return value.
+//
+// A special error return value, [DoNotRecurseSignalErr] is not considered an error (it will
+// not become the return value, and it does not stop iteration) but it will stop recursion if returned
+// on a field that is itself a struct.
+func WalkStructElementsWithError(t reflect.Type, f func(reflect.StructField) error) error {
 	if t.Kind() == reflect.Struct {
 		return doWalkStructElementsWithError(t, []int{}, f)
 	}
@@ -47,16 +64,23 @@ func WalkStructElementsWithError(t reflect.Type, f func(reflect.StructField) (bo
 	return nil
 }
 
-func doWalkStructElementsWithError(t reflect.Type, path []int, f func(reflect.StructField) (bool, error)) error {
+var DoNotRecurseSignalErr = errors.New("walkstruct: do not recurse signal")
+
+func doWalkStructElementsWithError(t reflect.Type, path []int, f func(reflect.StructField) error) error {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		np := copyIntSlice(path)
 		np = append(np, field.Index...)
 		field.Index = np
-		if walkDown, err := f(field); err != nil {
+		err := f(field)
+		if errors.Is(err, DoNotRecurseSignalErr) {
+			continue
+		}
+		if err != nil {
 			return err
-		} else if walkDown && field.Type.Kind() == reflect.Struct {
-			err := doWalkStructElementsWithError(field.Type, np, f)
+		}
+		if field.Type.Kind() == reflect.Struct {
+			err = doWalkStructElementsWithError(field.Type, np, f)
 			if err != nil {
 				return err
 			}

@@ -49,14 +49,34 @@ func makeIntDoublerWithError(t reflect.Type) (func(v reflect.Value), error) {
 		panic("makeIntDoublerWithError only supports pointers to structs")
 	}
 	var ints []reflect.StructField
-	err := reflectutils.WalkStructElementsWithError(t, func(f reflect.StructField) (bool, error) {
+	err := reflectutils.WalkStructElementsWithError(t, func(f reflect.StructField) error {
 		if f.Type.Kind() == reflect.Int {
 			ints = append(ints, f)
 		}
 		if f.Type.Kind() == reflect.String {
-			return false, errors.Errorf("error on string")
+			return errors.Errorf("error on string, and stop walk")
 		}
-		return true, nil
+		return nil // default nil recursive down
+	})
+	return func(v reflect.Value) {
+		v = v.Elem()
+		for _, f := range ints {
+			i := v.FieldByIndex(f.Index)
+			i.SetInt(int64(i.Interface().(int)) * 2)
+		}
+	}, err
+}
+
+func makeIntDoublerNoRecursive(t reflect.Type) (func(v reflect.Value), error) {
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
+		panic("makeIntDoublerNoRecursive only supports pointers to structs")
+	}
+	var ints []reflect.StructField
+	err := reflectutils.WalkStructElementsWithError(t, func(f reflect.StructField) error {
+		if f.Type.Kind() == reflect.Int {
+			ints = append(ints, f)
+		}
+		return reflectutils.DoNotRecurseSignalErr
 	})
 	return func(v reflect.Value) {
 		v = v.Elem()
@@ -84,7 +104,14 @@ func Example() {
 	doubler(v)
 	fmt.Printf("%v\n", v.Interface())
 
+	doubler, err := makeIntDoublerNoRecursive(v.Type())
+	doubler(v)
+	fmt.Printf("%v\n", v.Interface())
+	fmt.Printf("%v", err)
+
 	// Output: &{6 {4 12} string {10}}
+	// &{12 {4 12} string {10}}
+	// <nil>
 }
 
 func ExampleError() {
@@ -106,5 +133,5 @@ func ExampleError() {
 	fmt.Printf("%v", err)
 
 	// Output: &{6 {4 12} string {5}}
-	// error on string
+	// error on string, and stop walk
 }
