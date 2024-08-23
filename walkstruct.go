@@ -52,7 +52,7 @@ func doWalkStructElements(t reflect.Type, path []int, f func(reflect.StructField
 // the return value.
 //
 // A special error return value, [DoNotRecurseSignalErr] is not considered an error (it will
-// not become the return value, and it does not stop iteration) but it will stop recursion if returned
+// not become the return value, and it does not stop iteration) but it will prevent recursion if returned
 // on a field that is itself a struct.
 func WalkStructElementsWithError(t reflect.Type, f func(reflect.StructField) error) error {
 	if t.Kind() == reflect.Struct {
