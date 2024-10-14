@@ -137,46 +137,70 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 	if !v.IsValid() || v.IsNil() || v.Type().Kind() != reflect.Ptr || v.Type().Elem().Kind() != reflect.Struct {
 		return errors.Errorf("Fill target must be a pointer to a struct, not %T", model)
 	}
+
+	elements := strings.Split(tag.Value, ",")
+
+	// Now walk over the input model that controls the parsing.
+	// 1.first round match by index
+	elementsConsumed := make([]bool, len(elements))
+	err := WalkStructElementsWithError(v.Type(), func(f reflect.StructField) error {
+		parts, err := getTagContents(f.Tag, opt.tag)
+		if err != nil {
+			return err
+		}
+		var value string
+		if len(parts) > 0 && parts[0] != "" {
+			i, err := strconv.Atoi(parts[0])
+			if err == nil {
+				// positional!
+				if i >= len(elements) {
+					return nil
+				}
+				value = elements[i]
+				elementsConsumed[i] = true
+			}
+		}
+		return setValueHelper(value, parts, f, v)
+	})
+	if err != nil {
+		return err
+	}
+	// 2.remove matched by index
+	newElements := []string{}
+	for i, e := range elements {
+		if elementsConsumed[i] {
+			continue
+		}
+		newElements = append(newElements, e)
+	}
 	// Break apart the tag into a list of elements (split on ",") and
 	// key/values (kv) when the elements have values (split on "=").  If
 	// an element doesn't have a value from =, then it gets a value of
 	// "t" (true) unless the element name starts with "!" in which case,
 	// the "!" is discarded and the value is "f" (false)
 	kv := make(map[string]string)
-	elements := strings.Split(tag.Value, ",")
-	for _, element := range elements {
-		if eq := strings.IndexByte(element, '='); eq != -1 {
-			kv[element[0:eq]] = element[eq+1:]
+	for _, newElements := range newElements {
+		if eq := strings.IndexByte(newElements, '='); eq != -1 {
+			kv[newElements[0:eq]] = newElements[eq+1:]
 		} else {
-			if strings.HasPrefix(element, "!") {
-				kv[element[1:]] = "f"
+			if strings.HasPrefix(newElements, "!") {
+				kv[newElements[1:]] = "f"
 			} else {
-				kv[element] = "t"
+				kv[newElements] = "t"
 			}
 		}
 	}
-	// Now walk over the input model that controls the parsing.
-	var count int
-	var walkErr error
-	WalkStructElements(v.Type(), func(f reflect.StructField) bool {
-		tag := f.Tag.Get(opt.tag)
-		if tag == "-" {
-			return false
+	// 3.match on name
+	return WalkStructElementsWithError(v.Type(), func(f reflect.StructField) error {
+		parts, err := getTagContents(f.Tag, opt.tag)
+		if err != nil {
+			return err
 		}
-		count++
-		parts := strings.Split(tag, ",")
 		var value string
 		isBool := NonPointer(f.Type).Kind() == reflect.Bool
 		if len(parts) > 0 && parts[0] != "" {
-			i, err := strconv.Atoi(parts[0])
-			if err == nil {
-				// positional!
-				if i >= len(elements) {
-					return true
-				}
-				value = elements[i]
-				delete(kv, value) // exclude from rest match
-			} else {
+			_, err := strconv.Atoi(parts[0])
+			if err != nil {
 				if isBool {
 					for _, p := range parts {
 						if len(p) > 0 && p[0] == '!' {
@@ -201,36 +225,46 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 		} else {
 			value = kv[f.Name]
 		}
-		if value == "" {
-			return true
-		}
-		var sso []StringSetterArg
-		if len(parts) > 1 {
-			for _, part := range parts[1:] {
-				if strings.HasPrefix(part, "split=") {
-					splitOn := part[len("split="):]
-					switch splitOn {
-					case "quote":
-						splitOn = `"`
-					case "space":
-						splitOn = " "
-					}
-					sso = append(sso, WithSplitOn(splitOn))
+		return setValueHelper(value, parts, f, v)
+	})
+}
+
+func setValueHelper(value string, parts []string, f reflect.StructField, v reflect.Value) error {
+	if value == "" {
+		return nil
+	}
+	var sso []StringSetterArg
+	if len(parts) > 1 {
+		for _, part := range parts[1:] {
+			if strings.HasPrefix(part, "split=") {
+				splitOn := part[len("split="):]
+				switch splitOn {
+				case "quote":
+					splitOn = `"`
+				case "space":
+					splitOn = " "
 				}
+				sso = append(sso, WithSplitOn(splitOn))
 			}
 		}
-		set, err := MakeStringSetter(f.Type, sso...)
-		if err != nil {
-			walkErr = errors.Wrapf(err, "Cannot set %s", f.Type)
-			return true
-		}
-		err = set(v.Elem().FieldByIndex(f.Index), value)
-		if err != nil {
-			walkErr = errors.Wrap(err, f.Name)
-		}
-		return true
-	})
-	return walkErr
+	}
+	set, err := MakeStringSetter(f.Type, sso...)
+	if err != nil {
+		return errors.Wrapf(err, "Cannot set %s", f.Type)
+	}
+	err = set(v.Elem().FieldByIndex(f.Index), value)
+	if err != nil {
+		return errors.Wrap(err, f.Name)
+	}
+	return nil
+}
+
+func getTagContents(t reflect.StructTag, tagName string) ([]string, error) {
+	tag := t.Get(tagName)
+	if tag == "-" {
+		return nil, DoNotRecurseSignalErr
+	}
+	return strings.Split(tag, ","), nil
 }
 
 type FillOptArg func(*fillOpt)
