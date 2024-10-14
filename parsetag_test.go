@@ -65,6 +65,8 @@ func TestFill(t *testing.T) {
 				T3 string `xyz:"a,last" want:"{\"Name\":\"a\",\"First\":false}"`
 				T4 string `xyz:"a,!first" want:"{\"Name\":\"a\",\"First\":false}"`
 				T5 string `xyz:"a,!last" want:"{\"Name\":\"a\",\"First\":true}"`
+				T6 bool   `xyz:"first,first" want:"{\"Name\":\"first\",\"First\":true}"`
+				T7 bool   `xyz:"first,!first" want:"{\"Name\":\"first\",\"First\":false}"`
 			}{},
 			model: struct {
 				Name  string `pf:"0" json:",omitempty"`
