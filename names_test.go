@@ -16,7 +16,7 @@ func TestVersionedNames(t *testing.T) {
 	}
 	type ybar struct {
 		xbar
-		v1 v1.Bar //nolint:structcheck,unused // unused and we don't care
+		v1 v1.Bar //nolint:unused // unused and we don't care
 	}
 	cases := []struct {
 		thing interface{}
@@ -58,18 +58,22 @@ func TestVersionedNames(t *testing.T) {
 			want:  "chan *foo.Bar",
 		},
 		{
+			//nolint:gocritic // could remove some parens
 			thing: (chan<- *v1.Bar)(nil),
 			want:  "chan<- *foo.Bar",
 		},
 		{
+			//nolint:gocritic // could remove some parens
 			thing: (chan<- *v2.Bar)(nil),
 			want:  "chan<- *foo/v2.Bar",
 		},
 		{
+			//nolint:gocritic // could remove some parens
 			thing: (<-chan *v2.Bar)(nil),
 			want:  "<-chan *foo/v2.Bar",
 		},
 		{
+			//nolint:gocritic // could remove some parens
 			thing: (<-chan *v1.Bar)(nil),
 			want:  "<-chan *foo.Bar",
 		},

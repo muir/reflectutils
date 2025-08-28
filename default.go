@@ -3,7 +3,7 @@ package reflectutils
 import (
 	"reflect"
 
-	"github.com/pkg/errors"
+	"github.com/memsql/errors"
 )
 
 // FillInDefaultValues will look at struct tags, looking for a

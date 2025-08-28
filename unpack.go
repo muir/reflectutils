@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/memsql/errors"
 )
 
 var (
@@ -242,12 +242,6 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 			}
 			return nil
 		}, nil
-	case reflect.Map:
-		fallthrough
-	case reflect.Struct:
-		fallthrough
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Invalid, reflect.UnsafePointer:
-		fallthrough
 	default:
 		return nil, errors.Errorf("type %s not supported", t)
 	}

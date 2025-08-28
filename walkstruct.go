@@ -64,6 +64,7 @@ func WalkStructElementsWithError(t reflect.Type, f func(reflect.StructField) err
 	return nil
 }
 
+//nolint:staticcheck // error name doesn't match pattern
 var DoNotRecurseSignalErr = errors.New("walkstruct: do not recurse signal")
 
 func doWalkStructElementsWithError(t reflect.Type, path []int, f func(reflect.StructField) error) error {

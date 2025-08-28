@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/memsql/errors"
 	"github.com/muir/reflectutils"
-	"github.com/pkg/errors"
 )
 
 type S struct {
