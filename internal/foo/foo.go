@@ -1,3 +1,3 @@
 package foo
 
-type Bar struct {}
+type Bar struct{}

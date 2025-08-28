@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/memsql/errors"
 )
 
 var aTagRE = regexp.MustCompile(`(\S+):"((?:[^"\\]|\\.)*)"(?:\s+|$)`)
@@ -40,7 +40,7 @@ type TagSet struct {
 func SplitTag(tags reflect.StructTag) Tags {
 	found := make([]Tag, 0, 5)
 	s := string(tags)
-	for len(s) > 0 {
+	for s != "" {
 		f := aTagRE.FindStringSubmatchIndex(s)
 		if len(f) != 6 {
 			break
@@ -99,7 +99,7 @@ func LookupTag(tags reflect.StructTag, tag string) (Tag, bool) {
 	}, ok
 }
 
-// Fill unpacks struct tags into a struct based on tags of the desitnation struct.
+// Fill unpacks struct tags into a struct based on tags of the destination struct.
 // This is very meta.  It is using struct tags to control parsing of struct tags.
 // The tag being parsed is the receiver (tag).  The model that controls the parsing
 // is the function parameter (model).  The parsing may be adjusted based on the opts.
@@ -179,7 +179,7 @@ func (tag Tag) Fill(model interface{}, opts ...FillOptArg) error {
 			} else {
 				if isBool {
 					for _, p := range parts {
-						if len(p) > 0 && p[0] == '!' {
+						if p != "" && p[0] == '!' {
 							if v, ok := kv[p[1:]]; ok {
 								value = v
 								switch value {

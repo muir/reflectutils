@@ -130,6 +130,7 @@ func TestStringSetter(t *testing.T) {
 			}
 
 			fn, err := reflectutils.MakeStringSetter(f.Type, opts...)
+			//nolint:testifylint // assert instead of require
 			if !assert.NoErrorf(t, err, "make string setter for %s", f.Name) {
 				return
 			}
@@ -139,7 +140,7 @@ func TestStringSetter(t *testing.T) {
 				value2, ok := f.Tag.Lookup("value2")
 				if ok {
 					err := fn(e, value2)
-					assert.NoError(t, err, "set value2")
+					require.NoError(t, err, "set value2")
 				}
 				ge := e
 				if f.Type.Kind() == reflect.Ptr {

@@ -89,11 +89,13 @@ func TestFill(t *testing.T) {
 					t.Logf("%s: %s", f.Name, f.Tag)
 					got := reflect.New(reflect.TypeOf(tc.model)).Interface()
 					err := reflectutils.SplitTag(f.Tag).Set().Get(tc.targetTag).Fill(got, reflectutils.WithTag(tc.metaTag))
+					//nolint:testifylint // assert instead of require
 					if !assert.NoErrorf(t, err, "extract tag %s", f.Name) {
 						return
 					}
 					want := reflect.New(reflect.TypeOf(tc.model)).Interface()
 					err = json.Unmarshal([]byte(f.Tag.Get("want")), want)
+					//nolint:testifylint // assert instead of require
 					if !assert.NoErrorf(t, err, "extract want %s", f.Name) {
 						return
 					}
