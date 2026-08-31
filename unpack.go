@@ -109,7 +109,7 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 			return nil
 		}, nil
 	}
-	if reflect.PtrTo(t).AssignableTo(textUnmarshallerType) {
+	if reflect.PointerTo(t).AssignableTo(textUnmarshallerType) {
 		return func(target reflect.Value, value string) error {
 			err := target.Addr().Interface().(encoding.TextUnmarshaler).UnmarshalText([]byte(value))
 			return errors.WithStack(err)
@@ -126,7 +126,7 @@ func MakeStringSetter(t reflect.Type, optArgs ...StringSetterArg) (func(target r
 			return nil
 		}, nil
 	}
-	if reflect.PtrTo(t).AssignableTo(flagValueType) {
+	if reflect.PointerTo(t).AssignableTo(flagValueType) {
 		return func(target reflect.Value, value string) error {
 			err := target.Addr().Interface().(flag.Value).Set(value)
 			return errors.WithStack(err)
